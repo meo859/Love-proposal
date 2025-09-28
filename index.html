@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ขอเป็นแฟน</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --accent:#ff2d95;
+    --muted:#b8c0cc;
+  }
+  *{box-sizing:border-box;font-family: "Helvetica Neue", Arial, sans-serif}
+  html,body{height:100%;margin:0;background: radial-gradient(circle at 20% 10%, #11203a 0%, var(--bg) 40%), linear-gradient(180deg,#071018 0%, #021018 100%);color:#fff}
+  .center{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  }
+  .card{
+    width:100%;max-width:760px;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    border:1px solid rgba(255,255,255,0.05);border-radius:18px;padding:28px;box-shadow:0 10px 30px rgba(2,6,23,0.7);position:relative;overflow:hidden;
+  }
+  .top-row{display:flex;align-items:center;gap:16px}
+  .avatar{
+    width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7ab3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:36px;color:#fff;flex-shrink:0;box-shadow:0 6px 18px rgba(255,45,149,0.16);
+  }
+  h1{margin:0;font-size:28px;letter-spacing:0.2px}
+  p.lead{margin:8px 0 18px;color:var(--muted)}
+  .message{
+    background:rgba(255,255,255,0.02);border-radius:12px;padding:18px;margin-bottom:18px;border:1px solid rgba(255,255,255,0.02);
+    font-size:18px;line-height:1.5;
+  }
+  .actions{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{
+    padding:12px 18px;border-radius:12px;border:0;font-weight:700;cursor:pointer;font-size:16px;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-yes{background:linear-gradient(90deg,var(--accent),#ff7ab3);color:#fff;box-shadow:0 8px 26px rgba(255,45,149,0.16)}
+  .btn-no{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  .hint{font-size:13px;color:rgba(255,255,255,0.6);margin-top:12px}
+  /* heart reveal */
+  .overlay{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .45s ease;
+  }
+  .overlay.show{opacity:1;pointer-events:auto}
+  .heart{
+    width:180px;height:180px;border-radius:50%;position:relative;transform:scale(.6);filter:drop-shadow(0 20px 40px rgba(255,45,149,0.18));
+  }
+  .heart:before,.heart:after{
+    content:"";position:absolute;left:50%;top:50%;width:120px;height:120px;background:var(--accent);border-radius:60px;transform-origin:center;box-shadow:0 6px 20px rgba(0,0,0,0.2);
+  }
+  .heart:before{transform:translate(-50%,-50%) rotate(-45deg) translate(-30px,0)}
+  .heart:after{transform:translate(-50%,-50%) rotate(45deg) translate(30px,0)}
+  .confetti-canvas{position:absolute;inset:0;pointer-events:none}
+  /* shy hover effect for 'no' button */
+  .btn-no.shy{position:relative;transition:transform .18s ease}
+  .nameLine{font-weight:800;color:#fff;margin-left:6px}
+  @media(max-width:520px){
+    .top-row{flex-direction:row;gap:12px}
+    .message{font-size:16px}
+  }
+</style>
+</head>
+<body>
+<div class="center">
+  <div class="card" id="card">
+    <div class="top-row">
+      <div class="avatar" id="avatar">♡</div>
+      <div>
+        <h1 id="title">...ขอเป็นแฟนหน่อยได้มั้ย?</h1>
+        <p class="lead" id="subtitle">ข้อความหวานๆ ที่ส่งตรงจากใจ</p>
+        <div class="hint" id="smallHint">กดปุ่ม "ตกลง" ถ้าอยากเริ่มบทใหม่ด้วยกัน</div>
+      </div>
+    </div>
+
+    <div class="message" id="messageBox">
+      <!-- ข้อความส่วนตัว -->
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-yes" id="yesBtn">ตกลง 💖</button>
+      <button class="btn btn-no" id="noBtn">ขอคิดดูก่อน</button>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div style="text-align:center">
+        <div class="heart" id="bigHeart"></div>
+        <h2 id="congrats" style="margin-top:14px;font-size:24px">ยินดีด้วย! <span class="nameLine" id="targetNamePretty"></span> ตอบตกลงแล้ว 💘</h2>
+        <p style="color:rgba(255,255,255,0.85);margin-top:6px" id="finalMsg">ขอบคุณที่เป็นของกันและกัน</p>
+      </div>
+    </div>
+
+    <canvas class="confetti-canvas" id="confetti"></canvas>
+  </div>
+</div>
+
+<script>
+/* ---------- ปรับข้อความได้ตรงนี้ ---------- */
+const targetName = "น้องต้า"; // ชื่อคนที่คุณจะขอ (จะแสดงใน UI)
+const yourName = "พี่โต้";      // ชื่อคุณ (ถ้าต้องการแสดง)
+const askMessage = `สวัสดี ${targetName}… เราอยากบอกว่าเราอยากอยู่ข้างๆ คุณมากกว่าเป็นแค่เพื่อน อยากลองเป็นแฟนกันดูไหม? ถ้าตอบตกลง เราสัญญาว่าจะตั้งใจดูแลและทำให้ดีที่สุด 💕`;
+// ข้อความสุดท้ายหลังตอบตกลง
+const successMessage = `เราดีใจมากที่เธอตอบตกลง — ${yourName} จะดูแลเธออย่างดีนะ! เริ่มนัดกันเลย :)`;
+/* ------------------------------------------- */
+
+document.getElementById('title').textContent = `ขอเป็นแฟน ${targetName} หน่อยได้มั้ย?`;
+document.getElementById('messageBox').textContent = askMessage;
+document.getElementById('subtitle').textContent = `ถึง ${targetName} — จาก ${yourName}`;
+document.getElementById('targetNamePretty').textContent = targetName;
+document.getElementById('finalMsg').textContent = successMessage;
+document.getElementById('avatar').textContent = targetName[0] || '♡';
+
+/* ---------- ปุ่มโต้ตอบ ---------- */
+const yesBtn = document.getElementById('yesBtn');
+const noBtn = document.getElementById('noBtn');
+const overlay = document.getElementById('overlay');
+const confettiCanvas = document.getElementById('confetti');
+const ctx = confettiCanvas.getContext('2d');
+
+let W, H;
+function resize(){
+  confettiCanvas.width = W = confettiCanvas.clientWidth;
+  confettiCanvas.height = H = confettiCanvas.clientHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* simple confetti */
+const confettiPieces = [];
+function makeConfetti(){
+  for(let i=0;i<140;i++){
+    confettiPieces.push({
+      x: Math.random()*W,
+      y: Math.random()*H - H,
+      r: (Math.random()*6)+4,
+      vx: (Math.random()-0.5)*4,
+      vy: Math.random()*4+2,
+      color: ['#ff2d95','#ffd166','#6be4ff','#ffffff','#ff7ab3'][Math.floor(Math.random()*5)],
+      rot: Math.random()*360,
+      rotSpeed: (Math.random()-0.5)*8,
+      life: 120 + Math.random()*100
+    });
+  }
+}
+
+function drawConfetti(){
+  ctx.clearRect(0,0,W,H);
+  for(let i=0;i<confettiPieces.length;i++){
+    const p = confettiPieces[i];
+    p.x += p.vx; p.y += p.vy; p.rot += p.rotSpeed; p.life--;
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.rotate(p.rot*Math.PI/180);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.r/2,-p.r/2,p.r, p.r*0.6);
+    ctx.restore();
+    if(p.y>H+50 || p.x<-50 || p.x>W+50 || p.life<=0){
+      // recycle
+      p.x = Math.random()*W;
+      p.y = -20 - Math.random()*H;
+      p.vx = (Math.random()-0.5)*4;
+      p.vy = Math.random()*4+2;
+      p.life = 120 + Math.random()*100;
+    }
+  }
+  requestAnimationFrame(drawConfetti);
+}
+
+/* heart pulse */
+function pulseHeart(){
+  const heart = document.getElementById('bigHeart');
+  heart.animate([
+    { transform: 'scale(.6)'},
+    { transform: 'scale(1)'},
+    { transform: 'scale(.9)'},
+    { transform: 'scale(1)'}
+  ], { duration: 900, iterations: 6, easing: 'cubic-bezier(.2,.9,.2,1)' })
+}
+
+/* on yes */
+yesBtn.addEventListener('click', ()=>{
+  overlay.classList.add('show');
+  makeConfetti();
+  pulseHeart();
+  drawConfetti();
+  // small celebratory sound (simple beep) using WebAudio
+  try{
+    const a = new (window.AudioContext || window.webkitAudioContext)();
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = 'sine';
+    o.frequency.value = 480;
+    o.connect(g);
+    g.connect(a.destination);
+    g.gain.setValueAtTime(0.0001, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.12, a.currentTime + 0.02);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.7);
+    o.stop(a.currentTime + 0.75);
+  }catch(e){
+    // ignore if AudioContext unsupported
+  }
+});
+
+/* shy 'no' button: move away when mouse approaches */
+let moved = 0;
+noBtn.addEventListener('mouseenter', (e)=>{
+  if(moved>6) return;
+  const rect = noBtn.getBoundingClientRect();
+  const cardRect = document.getElementById('card').getBoundingClientRect();
+  // compute random offset, keep within card
+  const maxX = cardRect.width - rect.width - 28;
+  const maxY = cardRect.height - rect.height - 28;
+  const nx = Math.max(12, Math.random()*maxX);
+  const ny = Math.max(12, Math.random()*maxY);
+  noBtn.style.transform = `translate(${nx - rect.left + cardRect.left}px, ${ny - rect.top + cardRect.top}px)`;
+  noBtn.classList.add('shy');
+  moved++;
+});
+noBtn.addEventListener('click', ()=>{
+  // if they insist: show a gentle reply
+  alert('ไม่เป็นไร 😊 ถ้าคิดได้ค่อยมาบอกอีกครั้งก็ได้ — ขอบคุณที่ฟังนะ');
+});
+
+/* accessibility: keyboard yes/enter */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') yesBtn.click();
+});
+
+/* small floating hearts background (optional) */
+(function floatingHearts(){
+  const num = 10;
+  for(let i=0;i<num;i++){
+    const el = document.createElement('div');
+    el.style.position = 'absolute';
+    el.style.width = (20 + Math.random()*36) + 'px';
+    el.style.height = el.style.width;
+    el.style.left = (Math.random()*90) + '%';
+    el.style.top = (40 + Math.random()*40) + '%';
+    el.style.opacity = (0.08 + Math.random()*0.12);
+    el.style.background = 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.15), rgba(255,255,255,0))';
+    el.style.borderRadius = '50%';
+    el.style.transform = `translateY(${Math.random()*40}px)`;
+    el.style.pointerEvents = 'none';
+    document.getElementById('card').appendChild(el);
+  }
+})();
+
+/* Prevent noBtn from moving off-screen weirdly on small screens: reset transform on click outside */
+document.getElementById('card').addEventListener('click', (e)=>{
+  // if clicking anywhere on the card (not the noBtn), and noBtn has been moved, reset small transform after short delay
+  if(!e.target.closest('#noBtn')){
+    if(noBtn.style.transform){
+      setTimeout(()=>{ noBtn.style.transform=''; noBtn.classList.remove('shy'); }, 480);
+    }
+  }
+});
+</script>
+</body>
+</html>
